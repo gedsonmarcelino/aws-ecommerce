@@ -46,13 +46,16 @@ export class ProductsAppStack extends cdk.Stack {
         handler: 'handler',    
         timeout: cdk.Duration.seconds(5),
         bundling: {
-          minify: true,
+          minify: false,
           sourceMap: false,
+          nodeModules: ['aws-xray-sdk-core'],
         },
         environment: {
           PRODUCTS_DDB: this.productsDdb.tableName,
         },
-        layers:[productsLayer]
+        layers:[productsLayer],
+        tracing: lambda.Tracing.ACTIVE,
+        insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_404_0
       }
     );
 
@@ -69,13 +72,16 @@ export class ProductsAppStack extends cdk.Stack {
         handler: 'handler',    
         timeout: cdk.Duration.seconds(5),
         bundling: {
-          minify: true,
+          minify: false,
           sourceMap: false,
+          nodeModules: ['aws-xray-sdk-core'],
         },
         environment: {
           PRODUCTS_DDB: this.productsDdb.tableName,
         },
-        layers:[productsLayer]
+        layers:[productsLayer],
+        tracing: lambda.Tracing.ACTIVE,
+        insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_404_0
       }
     );
 

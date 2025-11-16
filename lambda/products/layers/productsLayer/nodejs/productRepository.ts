@@ -1,21 +1,14 @@
 import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 import { v4 as uuid } from 'uuid';
 
-const mappingUpdateExpression = (data: Partial<Product>) => {
-  return 'set ' + Object.keys(data)
-    .map((key) => `${key} = :${key}`)
-    .join(', ');
-}
-
-const mappingExpressionAttributeValues = (data: Partial<Product>) => {
-  return Object.entries(data).reduce(
-    (acc, [key, value]) => {
-      acc[':'+ key] = value;
-      return acc;
-    },
-    {} as { [key: string]: any }
-  );
-}
+const PRODUCT_KEYS = [
+  'id',
+  'productName',
+  'code',
+  'price',
+  'model',
+  'productUrl'
+];
 
 export interface Product {
   id: string;
@@ -23,6 +16,36 @@ export interface Product {
   code: string;
   price: number;
   model: string;
+  productUrl: string;
+}
+
+const mappingCreateData = (data: Partial<Product>) => {
+  return Object.entries(data).reduce(
+    (acc, [key, value]) => {
+      if ( !PRODUCT_KEYS.includes(key) ) return acc;
+      acc[key] = value;
+      return acc;
+    },
+    {} as { [key: string]: any }
+  );
+}
+
+const mappingUpdateExpression = (data: Partial<Product>) => {
+  return 'set ' + Object.keys(data)
+    .filter((key) => PRODUCT_KEYS.includes(key))
+    .map((key) => `${key} = :${key}`)
+    .join(', ');
+}
+
+const mappingExpressionAttributeValues = (data: Partial<Product>) => {
+  return Object.entries(data).reduce(
+    (acc, [key, value]) => {
+      if ( !PRODUCT_KEYS.includes(key) ) return acc;
+      acc[':'+ key] = value;
+      return acc;
+    },
+    {} as { [key: string]: any }
+  );
 }
 
 export class ProductRepository {
@@ -46,7 +69,7 @@ export class ProductRepository {
   async createProduct(productData: Omit<Product, 'id'>): Promise<Product> {
     const newProduct: Product = {
       id: uuid(),
-      ...productData,
+      ...mappingCreateData(productData) as Omit<Product, 'id'>
     };
 
     const params: DocumentClient.PutItemInput = {
