@@ -2,6 +2,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { ProductsAppStack } from '../lib/productsApp-stack';
 import { ECommerceApiStack } from '../lib/ecommerceApi-stack';
+import { ProductsAppLayersStack } from '../lib/productsAppLayers-stack';
 
 const app = new cdk.App();
 
@@ -15,10 +16,16 @@ const tags = {
   team: 'GDEV Ltda',
 }
 
+const productsLayersStack = new ProductsAppLayersStack(app, 'ProductsAppLayersStack', {
+  env,
+  tags,
+});
+
 const productsAppStack = new ProductsAppStack(app, 'ProductsApp', {
   env,
   tags,
 });
+productsAppStack.addDependency(productsLayersStack);
 
 const eCommerceApiStack = new ECommerceApiStack(app, 'ECommerceApiStack', {
   productsFetchHandler: productsAppStack.productsFetchHandler,
