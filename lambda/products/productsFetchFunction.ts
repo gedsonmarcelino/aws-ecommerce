@@ -1,9 +1,12 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from "aws-lambda";
+import { ProductRepository } from "/opt/nodejs/productsLayer";
+import { DocumentClient } from 'aws-sdk/clients/dynamodb';
 
-const mockProducts = [
-  { id: '1', name: 'Product 1', price: 100 },
-  { id: '2', name: 'Product 2', price: 200 },
-];
+
+const ddbClient = new DocumentClient();
+const productsTableName = process.env.PRODUCTS_DDB!;
+
+const productRepository = new ProductRepository(ddbClient, productsTableName);
 
 export const handler = async (
   event: APIGatewayProxyEvent,  
@@ -21,30 +24,30 @@ export const handler = async (
 
     if ( httpMethod === 'GET' ) {
       console.log("🚀 ~ handler ~ httpMethod:", httpMethod)
-
+      const data = await productRepository.getAllProducts();
       return {
         statusCode: 200,
-        body: JSON.stringify(mockProducts),
+        body: JSON.stringify(data),
       };
     }
   } else if ( resource === '/products/{id}' ) {
     if ( httpMethod === 'GET' ) {
       const {id} = event.pathParameters!;
 
-      const product = mockProducts.find(product => product.id === id);
-
-      if ( !product ) {
+      try {
+        const product = await productRepository.getProductById(id);
+        return {
+          statusCode: 200,
+          body: JSON.stringify(product),
+        };
+      } catch (error) {
+        console.error((<Error>error).message)
         return {
           statusCode: 404,
           body: JSON.stringify({
             message: "Product not found",
           }),
         };
-      }
-
-      return {
-        statusCode: 200,
-        body: JSON.stringify(product),
       }
     }
 

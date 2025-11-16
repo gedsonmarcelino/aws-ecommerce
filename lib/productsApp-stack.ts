@@ -2,6 +2,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as cdk from 'aws-cdk-lib';
 import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as dynamoDb from 'aws-cdk-lib/aws-dynamodb';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
 
 export class ProductsAppStack extends cdk.Stack {
@@ -13,6 +14,7 @@ export class ProductsAppStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    // DynamoDB Table
     this.productsDdb = new dynamoDb.Table(this, 'ProductsDdb', {
       tableName: 'products',
       removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -25,12 +27,20 @@ export class ProductsAppStack extends cdk.Stack {
       writeCapacity: 1,
     });
 
+    // Layers
+    const productsLayerArn = ssm.StringParameter.valueForStringParameter(
+      this,
+      'ProductsLayerVersionArn'
+    );
+    const productsLayer = lambda.LayerVersion.fromLayerVersionArn(this, "ProductsLayerVersionArn", productsLayerArn);
+
+    // Lambda Functions
     this.productsFetchHandler = new lambdaNodejs.NodejsFunction(
       this, 
       'ProductsFetchFunction', 
       { 
         runtime: lambda.Runtime.NODEJS_20_X,
-        memorySize: 512,
+        memorySize: 256,
         functionName: 'ProductsFetchFunction',
         entry: 'lambda/products/productsFetchFunction.ts',
         handler: 'handler',    
@@ -42,6 +52,7 @@ export class ProductsAppStack extends cdk.Stack {
         environment: {
           PRODUCTS_DDB: this.productsDdb.tableName,
         },
+        layers:[productsLayer]
       }
     );
 
@@ -52,7 +63,7 @@ export class ProductsAppStack extends cdk.Stack {
       'ProductsAdminFunction', 
       { 
         runtime: lambda.Runtime.NODEJS_20_X,
-        memorySize: 512,
+        memorySize: 256,
         functionName: 'ProductsAdminFunction',
         entry: 'lambda/products/productsAdminFunction.ts',
         handler: 'handler',    
@@ -64,6 +75,7 @@ export class ProductsAppStack extends cdk.Stack {
         environment: {
           PRODUCTS_DDB: this.productsDdb.tableName,
         },
+        layers:[productsLayer]
       }
     );
 

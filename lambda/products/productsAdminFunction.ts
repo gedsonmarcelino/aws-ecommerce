@@ -1,9 +1,12 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from "aws-lambda";
+import { Product, ProductRepository } from "/opt/nodejs/productsLayer";
+import { DocumentClient } from "aws-sdk/clients/dynamodb";
 
-const mockProducts = [
-  { id: '1', name: 'Product 1', price: 100 },
-  { id: '2', name: 'Product 2', price: 200 },
-];
+
+const ddbClient = new DocumentClient();
+const productsTableName = process.env.PRODUCTS_DDB!;
+
+const productRepository = new ProductRepository(ddbClient, productsTableName);
 
 export const handler = async (
   event: APIGatewayProxyEvent,  
@@ -22,69 +25,54 @@ export const handler = async (
     if ( httpMethod === 'POST' ) {
       console.log("🚀 ~ handler ~ httpMethod:", httpMethod)
 
-      const { name, price } = JSON.parse(event.body!);
+      const data = JSON.parse(event.body!) as Product;
 
-      const newProduct = {
-        id: String(mockProducts.length + 1),
-        name,
-        price,
-      };
-
-      mockProducts.push(newProduct);
+      const newProduct = await productRepository.createProduct(data);
 
       return {
         statusCode: 201,
-        body: JSON.stringify(mockProducts),
+        body: JSON.stringify(newProduct),
       };
     }
   } else if ( resource === '/products/{id}' ) {
-    const {id} = event.pathParameters!;
-    if ( httpMethod === 'PUT' ) {
-      const product = mockProducts.find(product => product.id === id);
+    const id = event.pathParameters?.id!;
 
-      if ( !product ) {
+    if ( httpMethod === 'PUT' ) {
+      const data = JSON.parse(event.body!) as Product;
+
+      try {
+        const product = await productRepository.updateProduct(id, data);  
+        return {
+          statusCode: 200,
+          body: JSON.stringify(product),
+        }
+      } catch {
         return {
           statusCode: 404,
-          body: JSON.stringify({
-            message: "Product not found",
-          }),
+          body: 'Product not found',
         };
-      }
-
-      const { name, price } = JSON.parse(event.body!);
-
-      product.name = name;
-      product.price = price;
-
-      return {
-        statusCode: 200,
-        body: JSON.stringify(product),
       }
     } else if ( httpMethod === 'DELETE' ) {
-      const productIndex = mockProducts.findIndex(product => product.id === id);
-
-      if ( productIndex === -1 ) {
+      try {
+        const product = await productRepository.deleteProduct(id);
+        return {
+          statusCode: 200,
+          body: JSON.stringify(product),
+        }
+      } catch (error) {
+        console.error((<Error>error).message)
         return {
           statusCode: 404,
           body: JSON.stringify({
-            message: "Product not found",
+            message: (<Error>error).message,
           }),
         };
-      }
-
-      mockProducts.splice(productIndex, 1);
-
-      return {
-        statusCode: 200,
-        body: JSON.stringify({
-          message: "Product deleted successfully",
-        }),
       }
     }
   }
 
   return {
-    statusCode: 400,
+    statusCode: 404,
     body: JSON.stringify({
       message: "Not Found",
     }),
