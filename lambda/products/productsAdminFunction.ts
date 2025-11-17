@@ -3,11 +3,15 @@ import { Product, ProductRepository } from "/opt/nodejs/productsLayer";
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
 import * as AWS from 'aws-sdk';
 import * as AWSXray from "aws-xray-sdk-core"
+import { ProductEvent, ProductEventType } from "/opt/nodejs/productEventsLayer";
 
 AWSXray.captureAWS(AWS);
 
 const ddbClient = new DocumentClient();
+const lambdaClient = new AWS.Lambda();
+
 const productsTableName = process.env.PRODUCTS_DDB!;
+const productsEventsFunctionName = process.env.PRODUCTS_EVENTS_FUNCTION_NAME!;
 
 const productRepository = new ProductRepository(ddbClient, productsTableName);
 
@@ -32,6 +36,14 @@ export const handler = async (
 
       const newProduct = await productRepository.createProduct(data);
 
+      const response = await sendProductEvent(
+        newProduct, 
+        ProductEventType.CREATED, 
+        "test@test.com", 
+        awsRequestId
+      );
+      console.log("Response event invocation:", response);
+
       return {
         statusCode: 201,
         body: JSON.stringify(newProduct),
@@ -45,6 +57,15 @@ export const handler = async (
 
       try {
         const product = await productRepository.updateProduct(id, data);  
+
+        const response = await sendProductEvent(
+          product, 
+          ProductEventType.UPDATED, 
+          "test@test.com", 
+          awsRequestId
+        );
+        console.log("Response event invocation:", response);
+
         return {
           statusCode: 200,
           body: JSON.stringify(product),
@@ -58,6 +79,15 @@ export const handler = async (
     } else if ( httpMethod === 'DELETE' ) {
       try {
         const product = await productRepository.deleteProduct(id);
+
+        const response = await sendProductEvent(
+          product, 
+          ProductEventType.DELETED, 
+          "test@test.com", 
+          awsRequestId
+        );
+        console.log("Response event invocation:", response);
+        
         return {
           statusCode: 200,
           body: JSON.stringify(product),
@@ -82,3 +112,25 @@ export const handler = async (
   };
 }
   
+function sendProductEvent(
+  product: Product, 
+  eventType: ProductEventType,
+  email: string,
+  lambdaRequestId: string
+) {
+
+  const event: ProductEvent = {
+    productId: product.id,
+    productCode: product.code,
+    productPrice: product.price,
+    eventType,
+    email,
+    requestId: lambdaRequestId
+  };
+
+  return lambdaClient.invoke({
+    FunctionName: productsEventsFunctionName,
+    InvocationType: 'RequestResponse', // Synchronous invocation
+    Payload: JSON.stringify(event)
+  }).promise();
+}
