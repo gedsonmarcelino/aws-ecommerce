@@ -7,6 +7,7 @@ import { Construct } from 'constructs';
 interface ECommerceApiStackProps extends cdk.StackProps {
   productsFetchHandler: lambdaNodejs.NodejsFunction;
   productsAdminHandler: lambdaNodejs.NodejsFunction;
+  ordersHandler: lambdaNodejs.NodejsFunction;
 }
 
 export class ECommerceApiStack extends cdk.Stack {
@@ -35,8 +36,47 @@ export class ECommerceApiStack extends cdk.Stack {
       },
     });
 
+    this.productsService(props, api);
+    this.ordersService(props, api);
+  }
+
+  private ordersService(props: ECommerceApiStackProps, api: apigateway.RestApi) {
+    const ordersIntegration = new apigateway.LambdaIntegration(
+      props.ordersHandler
+    );
+
+    // Resource: /orders
+    const ordersResource = api.root.addResource('orders');
+
+    // GET /orders
+    // GET /orders?email={email}
+    // GET /orders?email={email}&orderId={orderId}
+    ordersResource.addMethod('GET', ordersIntegration);
+
+    // DELETE /orders?email={email}&orderId={orderId}
+    ordersResource.addMethod('DELETE', ordersIntegration, {
+      requestParameters: {
+        'method.request.querystring.email': true,
+        'method.request.querystring.orderId': true,
+      },
+      requestValidator: new apigateway.RequestValidator(this, 'OrdersDeleteRequestValidator', {
+        restApi: api,
+        requestValidatorName: 'OrdersDeleteRequestValidator',
+        validateRequestParameters: true,
+      }),
+    });
+
+    // POST /orders
+    ordersResource.addMethod('POST', ordersIntegration);
+  }
+
+  private productsService(props: ECommerceApiStackProps, api: apigateway.RestApi) {
     const productsFetchIntegration = new apigateway.LambdaIntegration(
-      props.productsFetchHandler,
+      props.productsFetchHandler
+    );
+
+    const productsAdminIntegration = new apigateway.LambdaIntegration(
+      props.productsAdminHandler
     );
 
     // GET /products
@@ -47,16 +87,12 @@ export class ECommerceApiStack extends cdk.Stack {
     const productIdResource = productsResource.addResource('{id}');
     productIdResource.addMethod('GET', productsFetchIntegration);
 
-    const productsAdminIntegration = new apigateway.LambdaIntegration(
-      props.productsAdminHandler,
-    );
-
     // POST /products
     productsResource.addMethod('POST', productsAdminIntegration);
 
     // PUT /products/{id}
     productIdResource.addMethod('PUT', productsAdminIntegration);
-    
+
     // DELETE /products/{id}
     productIdResource.addMethod('DELETE', productsAdminIntegration);
   }

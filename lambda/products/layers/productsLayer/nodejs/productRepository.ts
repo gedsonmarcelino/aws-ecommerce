@@ -125,4 +125,18 @@ export class ProductRepository {
 
     return data.Attributes as Product;
   }
+
+  async getProductsByIds(ids: string[]): Promise<Product[]> {
+    const keys = ids.map(id => ({ id }));
+    
+    const params: DocumentClient.BatchGetItemInput = {
+      RequestItems: {
+        [this.productsTable]: {
+          Keys: keys,
+        },
+      },
+    };
+    const result = await this.ddbClient.batchGet(params).promise();
+    return result.Responses ? result.Responses[this.productsTable] as Product[] : [];
+  }
 }
