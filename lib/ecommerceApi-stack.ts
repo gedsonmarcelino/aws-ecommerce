@@ -45,6 +45,56 @@ export class ECommerceApiStack extends cdk.Stack {
       props.ordersHandler
     );
 
+    // Validators
+    // DELETE /orders request validator
+    const ordersDeleteRequestValidator = new apigateway.RequestValidator(this, 'OrdersDeleteRequestValidator', {
+      restApi: api,
+      requestValidatorName: 'OrdersDeleteRequestValidator',
+      validateRequestParameters: true,
+    });
+
+    // POST /orders request validator
+    const ordersPostRequestValidator = new apigateway.RequestValidator(this, 'OrdersPostRequestValidator', {
+      restApi: api,
+      requestValidatorName: 'OrdersPostRequestValidator',
+      validateRequestBody: true,
+    });
+
+    const ordersModel = new apigateway.Model(this, 'OrderModel', {
+      restApi: api,
+      modelName: 'OrderModel',
+      schema: {
+        type: apigateway.JsonSchemaType.OBJECT,
+        properties: {
+          email: { type: apigateway.JsonSchemaType.STRING },
+          productIds: { 
+            type: apigateway.JsonSchemaType.ARRAY,
+            items: { type: apigateway.JsonSchemaType.STRING },
+            minItems: 1,
+          },
+          payment: {
+            type: apigateway.JsonSchemaType.STRING,
+            enum: ['CREDIT_CARD', 'DEBIT_CARD', 'CASH'],
+          },
+          shipping: {
+            type: apigateway.JsonSchemaType.OBJECT,
+            properties: {
+              type: { 
+                type: apigateway.JsonSchemaType.STRING,
+                enum: ['ECONOMIC', 'URGENT'],
+              },
+              carrier: {
+                type: apigateway.JsonSchemaType.STRING,
+                enum: ['CORREIOS', 'FEDEX'],
+              }
+            }
+          }
+        },
+        required: ['email', 'productIds', 'shipping'],
+      }
+    });
+
+
     // Resource: /orders
     const ordersResource = api.root.addResource('orders');
 
@@ -59,15 +109,16 @@ export class ECommerceApiStack extends cdk.Stack {
         'method.request.querystring.email': true,
         'method.request.querystring.orderId': true,
       },
-      requestValidator: new apigateway.RequestValidator(this, 'OrdersDeleteRequestValidator', {
-        restApi: api,
-        requestValidatorName: 'OrdersDeleteRequestValidator',
-        validateRequestParameters: true,
-      }),
+      requestValidator: ordersDeleteRequestValidator,
     });
 
     // POST /orders
-    ordersResource.addMethod('POST', ordersIntegration);
+    ordersResource.addMethod('POST', ordersIntegration, {
+      requestValidator: ordersPostRequestValidator,
+      requestModels: {
+        'application/json': ordersModel,
+      },
+    });
   }
 
   private productsService(props: ECommerceApiStackProps, api: apigateway.RestApi) {
