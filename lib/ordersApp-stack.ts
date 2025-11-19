@@ -67,7 +67,7 @@ export class OrdersAppStack extends cdk.Stack {
         runtime: lambda.Runtime.NODEJS_20_X,
         memorySize: 256,
         functionName: 'OrdersFunction',
-        entry: 'lambda/orders/ordersFunction.ts',
+        entry: 'lambda/orders/functions/ordersFunction.ts',
         handler: 'handler',    
         timeout: cdk.Duration.seconds(5),
         bundling: {
@@ -97,7 +97,7 @@ export class OrdersAppStack extends cdk.Stack {
         runtime: lambda.Runtime.NODEJS_20_X,
         memorySize: 256,
         functionName: 'OrderEventsFunction',
-        entry: 'lambda/orders/orderEventsFunction.ts',
+        entry: 'lambda/orders/functions/orderEventsFunction.ts',
         handler: 'handler',    
         timeout: cdk.Duration.seconds(5),
         bundling: {
