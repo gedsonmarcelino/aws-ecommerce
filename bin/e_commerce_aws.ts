@@ -2,10 +2,10 @@
 import * as cdk from 'aws-cdk-lib';
 import { ProductsAppStack } from '../lib/productsApp-stack';
 import { ECommerceApiStack } from '../lib/ecommerceApi-stack';
-import { ProductsAppLayersStack } from '../lib/productsAppLayers-stack';
 import { EventsDdbStack } from '../lib/eventsDdb-stack';
 import { OrdersAppLayersStack } from '../lib/ordersAppLayers-stack';
 import { OrdersAppStack } from '../lib/ordersApp-stack';
+import { ECommerceLayersStack } from '../lib/ecommerceLayers-stack';
 
 
 const app = new cdk.App();
@@ -20,12 +20,12 @@ const tags = {
   team: 'GDEV Ltda',
 }
 
-const ordersLayersStack = new OrdersAppLayersStack(app, 'OrdersAppLayersStack', {
+const ecommerceLayersStack = new ECommerceLayersStack(app, 'ECommerceLayersStack', {
   env,
   tags,
 });
 
-const productsLayersStack = new ProductsAppLayersStack(app, 'ProductsAppLayersStack', {
+const ordersLayersStack = new OrdersAppLayersStack(app, 'OrdersAppLayersStack', {
   env,
   tags,
 });
@@ -41,7 +41,7 @@ const productsAppStack = new ProductsAppStack(app, 'ProductsApp', {
   tags,
 });
 
-productsAppStack.addDependency(productsLayersStack);
+productsAppStack.addDependency(ecommerceLayersStack);
 productsAppStack.addDependency(eventDdbStack);
 
 const ordersAppStack = new OrdersAppStack(app, 'OrdersApp', {
