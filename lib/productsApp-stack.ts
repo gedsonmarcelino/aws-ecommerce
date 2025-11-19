@@ -4,6 +4,7 @@ import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as dynamoDb from 'aws-cdk-lib/aws-dynamodb';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
+import { PRODUCTS } from '../lambda/products/constants';
 
 interface ProductsAppStackProps extends cdk.StackProps {
   eventsDdb: dynamoDb.Table;
@@ -19,11 +20,11 @@ export class ProductsAppStack extends cdk.Stack {
     super(scope, id, props);
 
     // DynamoDB Table
-    this.productsDdb = new dynamoDb.Table(this, 'ProductsDdb', {
-      tableName: 'products',
+    this.productsDdb = new dynamoDb.Table(this, PRODUCTS.DDB.NAME, {
+      tableName: PRODUCTS.DDB.TABLE_NAME,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       partitionKey: {
-        name: 'id',
+        name: PRODUCTS.DDB.PK,
         type: dynamoDb.AttributeType.STRING,
       },
       billingMode: dynamoDb.BillingMode.PROVISIONED,
@@ -32,21 +33,21 @@ export class ProductsAppStack extends cdk.Stack {
     });
 
     // Layers
-    const productsLayerArn = ssm.StringParameter.valueForStringParameter(this,'ProductsLayerVersionArn');    
-    const productsLayer = lambda.LayerVersion.fromLayerVersionArn(this, "ProductsLayerVersionArn", productsLayerArn);
+    const productsLayerArn = ssm.StringParameter.valueForStringParameter(this,PRODUCTS.LAYERS.PRODUCTS_LAYER.ARN);    
+    const productsLayer = lambda.LayerVersion.fromLayerVersionArn(this, PRODUCTS.LAYERS.PRODUCTS_LAYER.ARN, productsLayerArn);
 
-    const productEventsLayerArn = ssm.StringParameter.valueForStringParameter(this,'ProductEventsLayerVersionArn');
-    const productEventsLayer = lambda.LayerVersion.fromLayerVersionArn(this, "ProductEventsLayerVersionArn", productEventsLayerArn);
+    const productEventsLayerArn = ssm.StringParameter.valueForStringParameter(this, PRODUCTS.LAYERS.PRODUCT_EVENTS_LAYER.ARN);
+    const productEventsLayer = lambda.LayerVersion.fromLayerVersionArn(this,  PRODUCTS.LAYERS.PRODUCT_EVENTS_LAYER.ARN, productEventsLayerArn);
 
     // Lambda Functions
     this.productsFetchHandler = new lambdaNodejs.NodejsFunction(
       this, 
-      'ProductsFetchFunction', 
+      PRODUCTS.LAMBDA.FETCH_FUNCTION.NAME, 
       { 
         runtime: lambda.Runtime.NODEJS_20_X,
         memorySize: 256,
-        functionName: 'ProductsFetchFunction',
-        entry: 'lambda/products/functions/productsFetchFunction.ts',
+        functionName: PRODUCTS.LAMBDA.FETCH_FUNCTION.NAME,
+        entry: PRODUCTS.LAMBDA.FETCH_FUNCTION.PATH,
         handler: 'handler',    
         timeout: cdk.Duration.seconds(5),
         bundling: {
@@ -67,12 +68,12 @@ export class ProductsAppStack extends cdk.Stack {
 
     const productsEventsHandler = new lambdaNodejs.NodejsFunction(
       this, 
-      'ProductsEventsFunction', 
+      PRODUCTS.LAMBDA.EVENTS_FUNCTION.NAME, 
       { 
         runtime: lambda.Runtime.NODEJS_20_X,
         memorySize: 256,
-        functionName: 'ProductsEventsFunction',
-        entry: 'lambda/products/functions/productEventsFunction.ts',
+        functionName: PRODUCTS.LAMBDA.EVENTS_FUNCTION.NAME,
+        entry: PRODUCTS.LAMBDA.EVENTS_FUNCTION.PATH,
         handler: 'handler',    
         timeout: cdk.Duration.seconds(2),
         bundling: {
@@ -92,12 +93,12 @@ export class ProductsAppStack extends cdk.Stack {
 
     this.productsAdminHandler = new lambdaNodejs.NodejsFunction(
       this, 
-      'ProductsAdminFunction', 
+      PRODUCTS.LAMBDA.ADMIN_FUNCTION.NAME, 
       { 
         runtime: lambda.Runtime.NODEJS_20_X,
         memorySize: 256,
-        functionName: 'ProductsAdminFunction',
-        entry: 'lambda/products/functions/productsAdminFunction.ts',
+        functionName: PRODUCTS.LAMBDA.ADMIN_FUNCTION.NAME,
+        entry: PRODUCTS.LAMBDA.ADMIN_FUNCTION.PATH,
         handler: 'handler',    
         timeout: cdk.Duration.seconds(5),
         bundling: {

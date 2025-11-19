@@ -7,6 +7,7 @@ import * as sns from 'aws-cdk-lib/aws-sns';
 import * as subs from 'aws-cdk-lib/aws-sns-subscriptions';
 import * as iam from 'aws-cdk-lib/aws-iam'
 import { Construct } from 'constructs';
+import { ORDERS } from '../lambda/orders/constants';
 
 interface OrdersAppStackProps extends cdk.StackProps {
   productsDdb: dynamoDb.Table;
@@ -21,15 +22,15 @@ export class OrdersAppStack extends cdk.Stack {
     super(scope, id, props);
 
     // DynamoDB Table
-    const ordersDdb = new dynamoDb.Table(this, 'OrdersDdb', {
-      tableName: 'orders',
+    const ordersDdb = new dynamoDb.Table(this, ORDERS.DDB.NAME, {
+      tableName: ORDERS.DDB.TABLE_NAME,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       partitionKey: {
-        name: 'pk',
+        name: ORDERS.DDB.PK,
         type: dynamoDb.AttributeType.STRING,
       },
       sortKey: {
-        name: 'sk',
+        name: ORDERS.DDB.SK,
         type: dynamoDb.AttributeType.STRING,
       },
       billingMode: dynamoDb.BillingMode.PROVISIONED,
@@ -38,36 +39,36 @@ export class OrdersAppStack extends cdk.Stack {
     });
 
     // Layers
-    const ordersLayerArn = ssm.StringParameter.valueForStringParameter(this,'OrdersLayerVersionArn');    
-    const ordersLayer = lambda.LayerVersion.fromLayerVersionArn(this, "OrdersLayerVersionArn", ordersLayerArn);
+    const ordersLayerArn = ssm.StringParameter.valueForStringParameter(this, ORDERS.LAYERS.ORDERS_LAYER.ARN);    
+    const ordersLayer = lambda.LayerVersion.fromLayerVersionArn(this, ORDERS.LAYERS.ORDERS_LAYER.ARN, ordersLayerArn);
 
-    const ordersApiLayerArn = ssm.StringParameter.valueForStringParameter(this,'OrdersApiLayerVersionArn');    
-    const ordersApiLayer = lambda.LayerVersion.fromLayerVersionArn(this, "OrdersApiLayerVersionArn", ordersApiLayerArn);
+    const ordersApiLayerArn = ssm.StringParameter.valueForStringParameter(this,ORDERS.LAYERS.ORDERS_API_LAYER.ARN);    
+    const ordersApiLayer = lambda.LayerVersion.fromLayerVersionArn(this, ORDERS.LAYERS.ORDERS_API_LAYER.ARN, ordersApiLayerArn);
     
-    const ordersEventsLayerArn = ssm.StringParameter.valueForStringParameter(this,'OrdersEventsLayerVersionArn');    
-    const ordersEventsLayer = lambda.LayerVersion.fromLayerVersionArn(this, "OrdersEventsLayerVersionArn", ordersEventsLayerArn);
+    const ordersEventsLayerArn = ssm.StringParameter.valueForStringParameter(this,ORDERS.LAYERS.ORDERS_EVENTS_LAYER.ARN);    
+    const ordersEventsLayer = lambda.LayerVersion.fromLayerVersionArn(this, ORDERS.LAYERS.ORDERS_EVENTS_LAYER.ARN, ordersEventsLayerArn);
     
-    const ordersEventsRepositoryLayerArn = ssm.StringParameter.valueForStringParameter(this,'OrdersEventsRepostiroyLayerVersionArn');    
-    const ordersEventsRepositoryLayer = lambda.LayerVersion.fromLayerVersionArn(this, "OrdersEventsRepostiroyLayerVersionArn", ordersEventsRepositoryLayerArn);
+    const ordersEventsRepositoryLayerArn = ssm.StringParameter.valueForStringParameter(this,ORDERS.LAYERS.ORDERS_EVENTS_REPOSITORY_LAYER.ARN);    
+    const ordersEventsRepositoryLayer = lambda.LayerVersion.fromLayerVersionArn(this, ORDERS.LAYERS.ORDERS_EVENTS_REPOSITORY_LAYER.ARN, ordersEventsRepositoryLayerArn);
 
     const productsLayerArn = ssm.StringParameter.valueForStringParameter(this,'ProductsLayerVersionArn');    
     const productsLayer = lambda.LayerVersion.fromLayerVersionArn(this, "ProductsLayerVersionArn", productsLayerArn);
 
     // Topic
-    const ordersTopic = new sns.Topic(this, "OrderEventsTopic", {
-      displayName: "Order events topic",
-      topicName: "order-events"
+    const ordersTopic = new sns.Topic(this, ORDERS.TOPIC.ID, {
+      displayName: ORDERS.TOPIC.DISPLAY_NAME,
+      topicName: ORDERS.TOPIC.NAME,
     })
     
     // Lambda Functions
     this.ordersHandler = new lambdaNodejs.NodejsFunction(
       this, 
-      'OrdersFunction', 
+      ORDERS.LAMBDA.ORDERS_FUNCTION.NAME, 
       { 
         runtime: lambda.Runtime.NODEJS_20_X,
         memorySize: 256,
-        functionName: 'OrdersFunction',
-        entry: 'lambda/orders/functions/ordersFunction.ts',
+        functionName:ORDERS.LAMBDA.ORDERS_FUNCTION.NAME,
+        entry: ORDERS.LAMBDA.ORDERS_FUNCTION.PATH,
         handler: 'handler',    
         timeout: cdk.Duration.seconds(5),
         bundling: {
@@ -92,12 +93,12 @@ export class OrdersAppStack extends cdk.Stack {
 
     const orderEventsHandler = new lambdaNodejs.NodejsFunction(
       this, 
-      'OrderEventsFunction', 
+      ORDERS.LAMBDA.ORDERS_EVENTS_FUNCTION.NAME, 
       { 
         runtime: lambda.Runtime.NODEJS_20_X,
         memorySize: 256,
-        functionName: 'OrderEventsFunction',
-        entry: 'lambda/orders/functions/orderEventsFunction.ts',
+        functionName: ORDERS.LAMBDA.ORDERS_EVENTS_FUNCTION.NAME,
+        entry: ORDERS.LAMBDA.ORDERS_EVENTS_FUNCTION.PATH,
         handler: 'handler',    
         timeout: cdk.Duration.seconds(5),
         bundling: {
