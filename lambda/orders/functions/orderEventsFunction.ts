@@ -1,10 +1,10 @@
 import { Context, SNSEvent, SNSEventRecord } from "aws-lambda";
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
-import { OrderEventDdb, OrderEventRepository } from "/opt/nodejs/ordersEventsRepositoryLayer";
 import * as AWS from 'aws-sdk';
 import * as AWSXray from "aws-xray-sdk-core"
-import { Envelope, OrderEvent } from "/opt/nodejs/ordersEventsLayer";
 import { PromiseResult } from "aws-sdk/lib/request";
+import { OrderEventRepository, OrderEventDdb } from "/opt/nodejs/orders/orderEventRepository";
+import { Envelope, OrderEvent } from "/opt/nodejs/orders/orderEvent";
 
 AWSXray.captureAWS(AWS);
 

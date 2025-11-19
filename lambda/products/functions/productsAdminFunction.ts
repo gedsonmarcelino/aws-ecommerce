@@ -1,9 +1,10 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from "aws-lambda";
-import { Product, ProductRepository } from "/opt/nodejs/productsLayer";
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
 import * as AWS from 'aws-sdk';
 import * as AWSXray from "aws-xray-sdk-core"
-import { ProductEvent, ProductEventType } from "/opt/nodejs/productEventsLayer";
+import { Product, ProductRepository } from "/opt/nodejs/products/productRepository";
+import { ProductEvent, ProductEventType } from "/opt/nodejs/products/productEvent";
+
 
 AWSXray.captureAWS(AWS);
 

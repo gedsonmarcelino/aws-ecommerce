@@ -1,11 +1,11 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from "aws-lambda";
-import { Product, ProductRepository } from "/opt/nodejs/productsLayer";
+import { Product, ProductRepository } from "/opt/nodejs/products/productRepository";
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
 import * as AWS from 'aws-sdk';
 import * as AWSXray from "aws-xray-sdk-core"
-import { Order, OrderRepository } from "/opt/nodejs/ordersLayer";
-import { CarrierType, OrderRequest, OrderResponse, PaymentType, ShippingType } from "/opt/nodejs/ordersApiLayer";
-import { OrderEventType, Envelope } from "/opt/nodejs/ordersEventsLayer";
+import { Order, OrderRepository } from "/opt/nodejs/orders/orderRepository";
+import { CarrierType, OrderRequest, OrderResponse, PaymentType, ShippingType } from "/opt/nodejs/orders/orderApi";
+import { Envelope, OrderEventType } from "/opt/nodejs/orders/orderEvent";
 
 AWSXray.captureAWS(AWS);
 
@@ -129,8 +129,7 @@ export const handler = async (
   context: Context
 ): Promise<APIGatewayProxyResult> => {
 
-  const { awsRequestId } = context;
-  const { httpMethod, requestContext: { requestId} } = event;
+  const { httpMethod } = event;
 
   const methodHandler = REQUEST[httpMethod]
 
