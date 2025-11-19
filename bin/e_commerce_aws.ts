@@ -46,12 +46,14 @@ productsAppStack.addDependency(eventDdbStack);
 
 const ordersAppStack = new OrdersAppStack(app, 'OrdersApp', {
   productsDdb: productsAppStack.productsDdb,
+  eventsDdb: eventDdbStack.table,
   env,
   tags,
 });
 
 ordersAppStack.addDependency(ordersLayersStack);
 ordersAppStack.addDependency(productsAppStack);
+ordersAppStack.addDependency(eventDdbStack);
 
 const eCommerceApiStack = new ECommerceApiStack(app, 'ECommerceApiStack', {
   productsFetchHandler: productsAppStack.productsFetchHandler,
