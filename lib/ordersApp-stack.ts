@@ -6,6 +6,8 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as subs from 'aws-cdk-lib/aws-sns-subscriptions';
 import * as iam from 'aws-cdk-lib/aws-iam'
+import * as sqs from 'aws-cdk-lib/aws-sqs';
+import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import { Construct } from 'constructs';
 import { ORDERS } from '../lambda/orders/constants';
 
@@ -130,5 +132,84 @@ export class OrdersAppStack extends cdk.Stack {
 
     orderEventsHandler.addToRolePolicy(eventsDdbPolicy)
 
+
+    const billingHandler = new lambdaNodejs.NodejsFunction(
+      this, 
+      ORDERS.LAMBDA.BILLING_FUNCTION.NAME, 
+      { 
+        runtime: lambda.Runtime.NODEJS_20_X,
+        memorySize: 256,
+        functionName: ORDERS.LAMBDA.BILLING_FUNCTION.NAME,
+        entry: ORDERS.LAMBDA.BILLING_FUNCTION.PATH,
+        handler: 'handler',    
+        timeout: cdk.Duration.seconds(5),
+        bundling: {
+          minify: false,
+          sourceMap: false,
+          nodeModules: ['aws-xray-sdk-core'],
+        },
+        environment: {
+          EVENTS_DDB: props.eventsDdb.tableName,
+        },
+        tracing: lambda.Tracing.ACTIVE,
+        insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_404_0
+      }
+    );
+
+    ordersTopic.addSubscription(
+      new subs.LambdaSubscription(billingHandler, {
+        filterPolicy: {
+          eventType: sns.SubscriptionFilter.stringFilter({
+            allowlist: ['ORDER_CREATED']
+          })
+        }
+      })
+    )
+
+    const orderEventsQueue = new sqs.Queue(this, ORDERS.QUEUE.ID, {
+      queueName: ORDERS.QUEUE.NAME,
+      enforceSSL: false,
+      encryption: sqs.QueueEncryption.UNENCRYPTED,
+    });
+
+    ordersTopic.addSubscription(
+      new subs.SqsSubscription(orderEventsQueue,{
+        filterPolicy: {
+          eventType: sns.SubscriptionFilter.stringFilter({
+            allowlist: ['ORDER_CREATED']
+          })
+        }
+      })
+    );
+
+    const orderEmailsHandler = new lambdaNodejs.NodejsFunction(
+      this, 
+      ORDERS.LAMBDA.ORDERS_EMAILS_FUNCTION.NAME, 
+      { 
+        runtime: lambda.Runtime.NODEJS_20_X,
+        memorySize: 256,
+        functionName: ORDERS.LAMBDA.ORDERS_EMAILS_FUNCTION.NAME,
+        entry: ORDERS.LAMBDA.ORDERS_EMAILS_FUNCTION.PATH,
+        handler: 'handler',    
+        timeout: cdk.Duration.seconds(5),
+        bundling: {
+          minify: false,
+          sourceMap: false,
+          nodeModules: ['aws-xray-sdk-core'],
+        },
+        layers: [ordersEventsLayer],
+        tracing: lambda.Tracing.ACTIVE,
+        insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_404_0
+      }
+    );
+
+    orderEmailsHandler.addEventSource(
+      new lambdaEventSources.SqsEventSource(orderEventsQueue, {
+        batchSize: 5,
+        enabled: true,
+        maxBatchingWindow: cdk.Duration.minutes(1),
+      })
+    );
+    orderEventsQueue.grantConsumeMessages(orderEmailsHandler);
   }
 }

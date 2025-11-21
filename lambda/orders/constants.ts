@@ -19,6 +19,14 @@ export const ORDERS = {
       NAME: 'OrderEventsFunction',
       PATH: 'lambda/orders/functions/orderEventsFunction.ts',
     },
+    ORDERS_EMAILS_FUNCTION: {
+      NAME: 'OrderEmailsFunction',
+      PATH: 'lambda/orders/functions/orderEmailsFunction.ts',
+    },
+    BILLING_FUNCTION: {
+      NAME: 'BillingFunction',
+      PATH: 'lambda/orders/functions/billingFunction.ts',
+    },
   },
   LAYERS: {
     ORDERS_LAYER: {
@@ -41,5 +49,9 @@ export const ORDERS = {
       ARN: 'OrdersEventsRepositoryLayerVersionArn',
       PATH: 'lambda/orders/layers/ordersEventsRepositoryLayer'
     }
+  },
+  QUEUE: {
+    ID: 'OrderEventsQueue',
+    NAME: 'order-events',
   }
 } as const

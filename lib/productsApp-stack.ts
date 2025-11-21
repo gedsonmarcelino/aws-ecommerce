@@ -3,6 +3,7 @@ import * as cdk from 'aws-cdk-lib';
 import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as dynamoDb from 'aws-cdk-lib/aws-dynamodb';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
+import * as iam from 'aws-cdk-lib/aws-iam'
 import { Construct } from 'constructs';
 import { PRODUCTS } from '../lambda/products/constants';
 
@@ -89,7 +90,18 @@ export class ProductsAppStack extends cdk.Stack {
         insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_404_0
       }
     );
-    props.eventsDdb.grantWriteData(productsEventsHandler);
+
+    const eventsDdbPolicy = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ["dynamodb:PutItem"],
+      resources: [props.eventsDdb.tableArn],
+      conditions: {
+        ['ForAllValues:StringLike']: {
+          'dynamodb:LeadingKeys': ["#product_*"]
+        }
+      }
+    })
+    productsEventsHandler.addToRolePolicy(eventsDdbPolicy);
 
     this.productsAdminHandler = new lambdaNodejs.NodejsFunction(
       this, 
