@@ -3,6 +3,7 @@ import * as cdk from 'aws-cdk-lib';
 import * as lambdaNodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as dynamoDb from 'aws-cdk-lib/aws-dynamodb';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
 import * as iam from 'aws-cdk-lib/aws-iam'
 import { Construct } from 'constructs';
 import { PRODUCTS } from '../lambda/products/constants';
@@ -87,7 +88,12 @@ export class ProductsAppStack extends cdk.Stack {
         },
         layers:[productEventsLayer],
         tracing: lambda.Tracing.ACTIVE,
-        insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_404_0
+        insightsVersion: lambda.LambdaInsightsVersion.VERSION_1_0_404_0,
+        deadLetterQueueEnabled: true,
+        deadLetterQueue: new sqs.Queue(this, 'ProductsEventsDLQ', { // REFACTOR THE NAME
+          queueName: 'ProductsEventsDLQ',
+          retentionPeriod: cdk.Duration.days(10),
+        }),
       }
     );
 
