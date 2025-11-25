@@ -178,7 +178,7 @@ function convertToOrderResponse(order: Order): OrderResponse {
       type: order.shipping.type as ShippingType,
       carrier: order.shipping.carrier as CarrierType,
     },
-    products: order.products.map( product => ({
+    products: order.products?.map( product => ({
       code: product.code,
       price: product.price,
     })),
@@ -203,7 +203,7 @@ async function sendOrderEvent(
         payment: order.billing.payment,
         totalPrice: order.billing.totalPrice,
       },
-      productCodes: order.products.map(item => item.code),
+      productCodes: order.products?.map(item => item.code),
       requestId: labmdaRequestId
     })
   }

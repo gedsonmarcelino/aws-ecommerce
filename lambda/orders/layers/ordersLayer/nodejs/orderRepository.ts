@@ -20,7 +20,7 @@ export interface Order {
   pk: string;
   sk?: string;
   createdAt?: number;
-  products: OrderProduct[];
+  products?: OrderProduct[];
   billing: BillingInfo;
   shipping: ShippingInfo;
 }
@@ -38,6 +38,7 @@ export class OrderRepository {
     const params: DocumentClient.QueryInput = {
       TableName: this.ordersTableName,
       KeyConditionExpression: "pk = :email",
+      ProjectionExpression: "pk, sk, createdAt, billing, shipping",
       ExpressionAttributeValues: {
         ":email": email,
       },
@@ -89,6 +90,7 @@ export class OrderRepository {
   async getAllOrders(): Promise<Order[]> {
     const params: DocumentClient.ScanInput = {
       TableName: this.ordersTableName,
+      ProjectionExpression: "pk, sk, createdAt, billing, shipping"
     };
     const result = await this.ddbClient.scan(params).promise();
     return result.Items as Order[];
